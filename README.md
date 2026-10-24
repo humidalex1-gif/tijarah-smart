@@ -133,3 +133,7 @@ The seed creates a demo company. Default owner login: `owner@tijarah.test` / `de
 ---
 
 _Status: Stage 1 (register → company setup → products → receive/sell/transfer/count → expenses/payments → accurate profit, cash, and customer/supplier balances) is complete and covered by the test suite._
+
+## License
+
+Released under the [MIT License](LICENSE).
