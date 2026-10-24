@@ -1,0 +1,1299 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// ---------- Platform ----------
+
+model Company {
+  id                     String   @id @default(uuid())
+  name                   String
+  legalName              String?
+  logoUrl                String?
+  email                  String?
+  phone                  String?
+  country                String   @default("SA")
+  city                   String?
+  address                String?
+  taxNumber              String?
+  currencyCode           String   @default("SAR")
+  currencyDecimals       Int      @default(2)
+  defaultLanguage        String   @default("ar")
+  timezone               String   @default("Asia/Riyadh")
+  defaultTaxRatePct      Int      @default(1500)
+  allowNegativeInventory Boolean  @default(false)
+  onboardingCompleted    Boolean  @default(false)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  memberships            Membership[]
+  warehouses             Warehouse[]
+  products               Product[]
+  categories             ProductCategory[]
+  brands                 Brand[]
+  units                  UnitOfMeasure[]
+  suppliers              Supplier[]
+  customers              Customer[]
+  purchaseOrders         PurchaseOrder[]
+  salesOrders            SalesOrder[]
+  soldComponents         SalesOrderItemComponent[]
+  expenses               Expense[]
+  expenseCategories      ExpenseCategory[]
+  accounts               FinancialAccount[]
+  payments               Payment[]
+  movements              InventoryMovement[]
+  balances               InventoryBalance[]
+  transfers              WarehouseTransfer[]
+  auditLogs              AuditLog[]
+  sequences              NumberSequence[]
+  customerLedger         CustomerLedgerEntry[]
+  supplierLedger         SupplierLedgerEntry[]
+  customerReturns        CustomerReturn[]
+  stockCountSessions     StockCountSession[]
+  stockClaims            StockClaim[]
+  skuAliases             SkuAlias[]
+  adSpend                AdSpend[]
+  sallaConnection        SallaConnection?
+  reconciliationSessions ReconciliationSession[]
+  fastHubConnection      FastHubConnection?
+  bundleComponents       BundleComponent[]
+  syncRuns               SyncRun[]
+  attachments            Attachment[]
+  warehouseInvoices      WarehouseInvoice[]
+  warehouseInvoiceLines  WarehouseInvoiceLine[]
+}
+
+model User {
+  id                String       @id @default(uuid())
+  email             String       @unique
+  passwordHash      String
+  fullName          String
+  phone             String?
+  preferredLanguage String       @default("ar")
+  status            String       @default("ACTIVE")
+  lastLoginAt       DateTime?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  memberships       Membership[]
+}
+
+model Membership {
+  id        String   @id @default(uuid())
+  userId    String
+  companyId String
+  role      String
+  status    String   @default("ACTIVE")
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, companyId])
+  @@index([companyId])
+}
+
+model NumberSequence {
+  id        String  @id @default(uuid())
+  companyId String
+  prefix    String
+  nextValue Int     @default(1)
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, prefix])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  companyId  String
+  userId     String?
+  action     String
+  entityType String
+  entityId   String
+  oldValues  String?
+  newValues  String?
+  createdAt  DateTime @default(now())
+  company    Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, createdAt])
+  @@index([companyId, entityType, entityId])
+}
+
+// ---------- Catalog ----------
+
+model ProductCategory {
+  id        String            @id @default(uuid())
+  companyId String
+  parentId  String?
+  nameAr    String
+  nameEn    String
+  code      String?
+  isActive  Boolean           @default(true)
+  createdAt DateTime          @default(now())
+  company   Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  parent    ProductCategory?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children  ProductCategory[] @relation("CategoryTree")
+  products  Product[]
+
+  @@index([companyId])
+}
+
+model Brand {
+  id        String    @id @default(uuid())
+  companyId String
+  name      String
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  company   Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  products  Product[]
+
+  @@index([companyId])
+}
+
+model UnitOfMeasure {
+  id        String    @id @default(uuid())
+  companyId String
+  nameAr    String
+  nameEn    String
+  code      String
+  isActive  Boolean   @default(true)
+  company   Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  products  Product[]
+
+  @@index([companyId])
+}
+
+model Product {
+  id                String   @id @default(uuid())
+  companyId         String
+  categoryId        String?
+  brandId           String?
+  unitId            String?
+  defaultSupplierId String?
+  nameAr            String
+  nameEn            String
+  descriptionAr     String?
+  descriptionEn     String?
+  productType       String   @default("SIMPLE")
+  sku               String
+  barcode           String?
+  taxRatePct        Int      @default(1500)
+  purchasePrice     Int      @default(0)
+  sellingPrice      Int      @default(0)
+  wholesalePrice    Int      @default(0)
+  minSellingPrice   Int      @default(0)
+  weightGrams       Int      @default(0)
+  lengthMm          Int      @default(0)
+  widthMm           Int      @default(0)
+  heightMm          Int      @default(0)
+  reorderLevel      Int      @default(0)
+  reorderQty        Int      @default(0)
+  /// A bundle is assembled at pick time and has no shelf of its own, so it is
+  /// excluded from stock expectations and expanded into components on sale.
+  isBundle          Boolean  @default(false)
+  trackInventory    Boolean  @default(true)
+  allowBackorder    Boolean  @default(false)
+  status            String   @default("ACTIVE")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  company         Company                   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  category        ProductCategory?          @relation(fields: [categoryId], references: [id])
+  brand           Brand?                    @relation(fields: [brandId], references: [id])
+  unit            UnitOfMeasure?            @relation(fields: [unitId], references: [id])
+  defaultSupplier Supplier?                 @relation(fields: [defaultSupplierId], references: [id])
+  variants        ProductVariant[]
+  images          ProductImage[]
+  balances        InventoryBalance[]
+  movements       InventoryMovement[]
+  poItems         PurchaseOrderItem[]
+  soItems         SalesOrderItem[]
+  soldComponents  SalesOrderItemComponent[] @relation("SoldComponent")
+  receiptItems    PurchaseReceiptItem[]
+  transferItems   WarehouseTransferItem[]
+  returnItems     CustomerReturnItem[]
+  countLines      StockCountLine[]
+  stockClaims     StockClaim[]
+  skuAliases      SkuAlias[]
+  adSpend         AdSpend[]
+  bundleOf        BundleComponent[]         @relation("BundleParent")
+  componentOf     BundleComponent[]         @relation("BundleChild")
+
+  @@unique([companyId, sku])
+  @@index([companyId, status])
+  @@index([companyId, barcode])
+}
+
+model ProductVariant {
+  id              String   @id @default(uuid())
+  companyId       String
+  productId       String
+  name            String
+  sku             String
+  barcode         String?
+  attributes      String   @default("{}")
+  purchasePrice   Int      @default(0)
+  sellingPrice    Int      @default(0)
+  wholesalePrice  Int      @default(0)
+  minSellingPrice Int      @default(0)
+  weightGrams     Int      @default(0)
+  status          String   @default("ACTIVE")
+  createdAt       DateTime @default(now())
+
+  product       Product                 @relation(fields: [productId], references: [id], onDelete: Cascade)
+  images        ProductImage[]
+  balances      InventoryBalance[]
+  movements     InventoryMovement[]
+  poItems       PurchaseOrderItem[]
+  soItems       SalesOrderItem[]
+  receiptItems  PurchaseReceiptItem[]
+  transferItems WarehouseTransferItem[]
+  returnItems   CustomerReturnItem[]
+
+  @@unique([companyId, sku])
+  @@index([productId])
+}
+
+model ProductImage {
+  id        String          @id @default(uuid())
+  productId String
+  variantId String?
+  url       String
+  sortOrder Int             @default(0)
+  isPrimary Boolean         @default(false)
+  product   Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variant   ProductVariant? @relation(fields: [variantId], references: [id])
+
+  @@index([productId])
+}
+
+// ---------- Inventory ----------
+
+model Warehouse {
+  id        String   @id @default(uuid())
+  companyId String
+  name      String
+  code      String
+  city      String?
+  address   String?
+  managerId String?
+  isDefault Boolean  @default(false)
+  status    String   @default("ACTIVE")
+  createdAt DateTime @default(now())
+
+  company                Company                 @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  balances               InventoryBalance[]
+  movements              InventoryMovement[]     @relation("MovementWarehouse")
+  incoming               InventoryMovement[]     @relation("MovementDestination")
+  salesOrders            SalesOrder[]
+  poOrders               PurchaseOrder[]
+  receipts               PurchaseReceipt[]
+  outgoing               WarehouseTransfer[]     @relation("TransferSource")
+  arriving               WarehouseTransfer[]     @relation("TransferDestination")
+  returnItems            CustomerReturnItem[]
+  stockCountSessions     StockCountSession[]
+  reconciliationSessions ReconciliationSession[]
+
+  @@unique([companyId, code])
+  @@index([companyId])
+}
+
+model InventoryBalance {
+  id           String   @id @default(uuid())
+  companyId    String
+  warehouseId  String
+  productId    String
+  variantId    String?
+  // SQLite treats NULLs as distinct in a unique index, so the "one row per
+  // warehouse/product/variant" invariant rides on this non-nullable mirror
+  // of variantId ("" for simple products). Normalised in getBalance.
+  variantKey   String   @default("")
+  availableQty Int      @default(0)
+  reservedQty  Int      @default(0)
+  damagedQty   Int      @default(0)
+  // Units the merchant believes exist but the custodian has not confirmed.
+  // Owned and carrying their cost, but not sellable — see StockClaim.
+  disputedQty  Int      @default(0)
+  avgCost      Int      @default(0)
+  updatedAt    DateTime @updatedAt
+
+  company   Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  warehouse Warehouse       @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  product   Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variant   ProductVariant? @relation(fields: [variantId], references: [id])
+
+  @@unique([warehouseId, productId, variantKey])
+  @@index([companyId, productId])
+}
+
+model InventoryMovement {
+  id                     String   @id @default(uuid())
+  companyId              String
+  warehouseId            String
+  destinationWarehouseId String?
+  productId              String
+  variantId              String?
+  movementType           String
+  direction              String
+  bucket                 String   @default("AVAILABLE")
+  quantity               Int
+  unitCost               Int
+  totalCost              Int
+  balanceAfter           Int
+  referenceType          String
+  referenceId            String
+  referenceNumber        String
+  reason                 String?
+  notes                  String?
+  movementDate           DateTime @default(now())
+  createdById            String?
+  createdAt              DateTime @default(now())
+
+  company     Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  warehouse   Warehouse       @relation("MovementWarehouse", fields: [warehouseId], references: [id])
+  destination Warehouse?      @relation("MovementDestination", fields: [destinationWarehouseId], references: [id])
+  product     Product         @relation(fields: [productId], references: [id])
+  variant     ProductVariant? @relation(fields: [variantId], references: [id])
+
+  @@index([companyId, movementDate])
+  @@index([companyId, productId, movementDate])
+  @@index([referenceType, referenceId])
+}
+
+model WarehouseTransfer {
+  id                     String    @id @default(uuid())
+  companyId              String
+  transferNumber         String
+  sourceWarehouseId      String
+  destinationWarehouseId String
+  status                 String    @default("DRAFT")
+  transferDate           DateTime  @default(now())
+  receivedAt             DateTime?
+  notes                  String?
+  createdById            String?
+  createdAt              DateTime  @default(now())
+
+  company     Company                 @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  source      Warehouse               @relation("TransferSource", fields: [sourceWarehouseId], references: [id])
+  destination Warehouse               @relation("TransferDestination", fields: [destinationWarehouseId], references: [id])
+  items       WarehouseTransferItem[]
+
+  @@unique([companyId, transferNumber])
+  @@index([companyId, status])
+}
+
+model WarehouseTransferItem {
+  id          String  @id @default(uuid())
+  transferId  String
+  productId   String
+  variantId   String?
+  shippedQty  Int     @default(0)
+  receivedQty Int     @default(0)
+  damagedQty  Int     @default(0)
+  unitCost    Int     @default(0)
+
+  transfer WarehouseTransfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
+  product  Product           @relation(fields: [productId], references: [id])
+  variant  ProductVariant?   @relation(fields: [variantId], references: [id])
+
+  @@index([transferId])
+}
+
+// ---------- Purchasing ----------
+
+model Supplier {
+  id               String   @id @default(uuid())
+  companyId        String
+  name             String
+  companyName      String?
+  contactPerson    String?
+  phone            String?
+  email            String?
+  country          String?
+  city             String?
+  address          String?
+  taxNumber        String?
+  paymentTermsDays Int      @default(0)
+  notes            String?
+  status           String   @default("ACTIVE")
+  createdAt        DateTime @default(now())
+
+  company        Company               @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  purchaseOrders PurchaseOrder[]
+  ledger         SupplierLedgerEntry[]
+  products       Product[]
+  payments       Payment[]
+  expenses       Expense[]
+
+  @@index([companyId, status])
+}
+
+model PurchaseOrder {
+  id                  String    @id @default(uuid())
+  companyId           String
+  purchaseOrderNumber String
+  supplierId          String
+  warehouseId         String
+  orderDate           DateTime  @default(now())
+  expectedDate        DateTime?
+  subtotal            Int       @default(0)
+  discountTotal       Int       @default(0)
+  taxTotal            Int       @default(0)
+  additionalCostTotal Int       @default(0)
+  grandTotal          Int       @default(0)
+  paidAmount          Int       @default(0)
+  allocationMethod    String    @default("VALUE")
+  paymentStatus       String    @default("UNPAID")
+  receivingStatus     String    @default("PENDING")
+  status              String    @default("DRAFT")
+  notes               String?
+  createdById         String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  company         Company                  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  supplier        Supplier                 @relation(fields: [supplierId], references: [id])
+  warehouse       Warehouse                @relation(fields: [warehouseId], references: [id])
+  items           PurchaseOrderItem[]
+  additionalCosts PurchaseAdditionalCost[]
+  receipts        PurchaseReceipt[]
+  payments        Payment[]
+
+  @@unique([companyId, purchaseOrderNumber])
+  @@index([companyId, status])
+  @@index([companyId, supplierId])
+}
+
+model PurchaseOrderItem {
+  id                      String  @id @default(uuid())
+  purchaseOrderId         String
+  productId               String
+  variantId               String?
+  orderedQty              Int
+  receivedQty             Int     @default(0)
+  unitPrice               Int
+  discountAmount          Int     @default(0)
+  taxAmount               Int     @default(0)
+  lineTotal               Int     @default(0)
+  allocatedAdditionalCost Int     @default(0)
+  landedUnitCost          Int     @default(0)
+
+  purchaseOrder PurchaseOrder         @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  product       Product               @relation(fields: [productId], references: [id])
+  variant       ProductVariant?       @relation(fields: [variantId], references: [id])
+  receiptItems  PurchaseReceiptItem[]
+
+  @@index([purchaseOrderId])
+}
+
+model PurchaseAdditionalCost {
+  id              String        @id @default(uuid())
+  purchaseOrderId String
+  costType        String
+  description     String?
+  amount          Int
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+
+  @@index([purchaseOrderId])
+}
+
+model PurchaseReceipt {
+  id              String   @id @default(uuid())
+  companyId       String
+  purchaseOrderId String
+  receiptNumber   String
+  warehouseId     String
+  receivedDate    DateTime @default(now())
+  status          String   @default("CONFIRMED")
+  notes           String?
+  createdById     String?
+  createdAt       DateTime @default(now())
+
+  purchaseOrder PurchaseOrder         @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  warehouse     Warehouse             @relation(fields: [warehouseId], references: [id])
+  items         PurchaseReceiptItem[]
+
+  @@unique([companyId, receiptNumber])
+  @@index([purchaseOrderId])
+}
+
+model PurchaseReceiptItem {
+  id                  String  @id @default(uuid())
+  receiptId           String
+  purchaseOrderItemId String
+  productId           String
+  variantId           String?
+  acceptedQty         Int     @default(0)
+  damagedQty          Int     @default(0)
+  landedUnitCost      Int     @default(0)
+
+  receipt   PurchaseReceipt   @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+  orderItem PurchaseOrderItem @relation(fields: [purchaseOrderItemId], references: [id])
+  product   Product           @relation(fields: [productId], references: [id])
+  variant   ProductVariant?   @relation(fields: [variantId], references: [id])
+
+  @@index([receiptId])
+}
+
+model SupplierLedgerEntry {
+  id              String   @id @default(uuid())
+  companyId       String
+  supplierId      String
+  transactionDate DateTime @default(now())
+  transactionType String
+  referenceType   String
+  referenceId     String
+  referenceNumber String
+  debitAmount     Int      @default(0)
+  creditAmount    Int      @default(0)
+  runningBalance  Int      @default(0)
+  createdAt       DateTime @default(now())
+
+  company  Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  supplier Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@index([supplierId, transactionDate])
+}
+
+// ---------- Sales ----------
+
+model Customer {
+  id               String   @id @default(uuid())
+  companyId        String
+  customerType     String   @default("RETAIL")
+  name             String
+  phone            String?
+  email            String?
+  country          String?
+  city             String?
+  address          String?
+  taxNumber        String?
+  creditLimit      Int      @default(0)
+  paymentTermsDays Int      @default(0)
+  notes            String?
+  status           String   @default("ACTIVE")
+  createdAt        DateTime @default(now())
+
+  company     Company               @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  salesOrders SalesOrder[]
+  ledger      CustomerLedgerEntry[]
+  payments    Payment[]
+  returns     CustomerReturn[]
+
+  @@index([companyId, status])
+}
+
+model SalesOrder {
+  id               String   @id @default(uuid())
+  companyId        String
+  salesOrderNumber String
+  customerId       String?
+  warehouseId      String
+  channel          String   @default("STORE")
+  orderDate        DateTime @default(now())
+  subtotal         Int      @default(0)
+  discountTotal    Int      @default(0)
+  taxTotal         Int      @default(0)
+  shippingCharged  Int      @default(0)
+  grandTotal       Int      @default(0)
+  paidAmount       Int      @default(0)
+  totalCost        Int      @default(0)
+  grossProfit      Int      @default(0)
+  netProfit        Int      @default(0)
+  refundedAmount   Int      @default(0)
+  paymentStatus    String   @default("UNPAID")
+  status           String   @default("DRAFT")
+  notes            String?
+  createdById      String?
+  /// Where a synced order came from ("FASTHUB", "SALLA"); null for manual.
+  externalSource   String?
+  /// The source system's own order id, for display and lookups.
+  externalRef      String?
+  /// Non-null mirror of source+ref ("FASTHUB:SO-123"), same idiom as
+  /// StockClaim.sourceKey: a nullable column inside @@unique constrains
+  /// nothing on SQLite, and this key is what makes a re-poll unable to
+  /// create the same order twice. Defaults to a uuid so every MANUAL order
+  /// is unique under the index with no code knowing the column exists; the
+  /// sync path overwrites it with the real source key.
+  externalKey      String   @default(uuid())
+  /// Omniful's OWN order id, which is the only identifier their order-detail
+  /// endpoint accepts — `order_id` and `order_alias` both return 400. Stored
+  /// because a forward-only `search_after` cursor never offers an order twice,
+  /// so an order imported as a DRAFT before it shipped could not otherwise be
+  /// re-read and confirmed. Null for manual orders and for FASTHUB orders
+  /// imported before this column existed.
+  omnifulOrderId   String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  company       Company                @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer      Customer?              @relation(fields: [customerId], references: [id])
+  warehouse     Warehouse              @relation(fields: [warehouseId], references: [id])
+  items         SalesOrderItem[]
+  costs         SalesOrderCost[]
+  payments      Payment[]
+  returns       CustomerReturn[]
+  warehouseFees WarehouseInvoiceLine[]
+
+  @@unique([companyId, salesOrderNumber])
+  // The sync idempotency key: a re-poll that tries to create "FASTHUB:SO-1"
+  // twice hits this index. Manual orders never collide — their externalKey
+  // is a per-row uuid by default.
+  @@unique([companyId, externalKey])
+  @@index([companyId, status, orderDate])
+  @@index([companyId, customerId])
+}
+
+model SalesOrderItem {
+  id                   String  @id @default(uuid())
+  salesOrderId         String
+  productId            String
+  variantId            String?
+  quantity             Int
+  unitPrice            Int
+  discountAmount       Int     @default(0)
+  taxAmount            Int     @default(0)
+  lineTotal            Int     @default(0)
+  unitCostSnapshot     Int     @default(0)
+  totalCost            Int     @default(0)
+  grossProfit          Int     @default(0)
+  allocatedShipping    Int     @default(0)
+  allocatedPlatformFee Int     @default(0)
+  allocatedPaymentFee  Int     @default(0)
+  allocatedCommission  Int     @default(0)
+  allocatedOtherCost   Int     @default(0)
+  netProfit            Int     @default(0)
+  returnedQty          Int     @default(0)
+  returnedRevenue      Int     @default(0)
+  returnedCost         Int     @default(0)
+
+  salesOrder  SalesOrder                @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+  product     Product                   @relation(fields: [productId], references: [id])
+  variant     ProductVariant?           @relation(fields: [variantId], references: [id])
+  returnItems CustomerReturnItem[]
+  components  SalesOrderItemComponent[]
+
+  @@index([salesOrderId])
+  @@index([productId])
+}
+
+/// What the warehouse ACTUALLY picked for a bundle line. Four of the five
+/// bundles are customer-configured, so no stored recipe can know the colours;
+/// the Fast Hub order sync writes the picked SKUs here and confirmSale
+/// prefers them over the recipe. Empty for ordinary lines.
+model SalesOrderItemComponent {
+  id                 String @id @default(uuid())
+  companyId          String
+  salesOrderItemId   String
+  componentProductId String
+  /// Thousandths, like every other quantity in this codebase.
+  quantity           Int
+
+  company          Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  salesOrderItem   SalesOrderItem @relation(fields: [salesOrderItemId], references: [id], onDelete: Cascade)
+  /// Cascade for the same reason as BundleComponent: RESTRICT here blocks the
+  /// Company -> Product cascade and breaks every database-backed test at once.
+  componentProduct Product        @relation("SoldComponent", fields: [componentProductId], references: [id], onDelete: Cascade)
+
+  @@unique([salesOrderItemId, componentProductId])
+  @@index([companyId, salesOrderItemId])
+}
+
+model SalesOrderCost {
+  id           String     @id @default(uuid())
+  salesOrderId String
+  costType     String
+  description  String?
+  amount       Int
+  salesOrder   SalesOrder @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+
+  @@index([salesOrderId])
+}
+
+model CustomerReturn {
+  id           String   @id @default(uuid())
+  companyId    String
+  salesOrderId String
+  customerId   String?
+  returnNumber String
+  returnDate   DateTime @default(now())
+  refundAmount Int      @default(0)
+  costReversal Int      @default(0)
+  status       String   @default("CONFIRMED")
+  reason       String?
+  createdById  String?
+  createdAt    DateTime @default(now())
+
+  company    Company              @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  salesOrder SalesOrder           @relation(fields: [salesOrderId], references: [id])
+  customer   Customer?            @relation(fields: [customerId], references: [id])
+  items      CustomerReturnItem[]
+
+  @@unique([companyId, returnNumber])
+  @@index([salesOrderId])
+}
+
+model CustomerReturnItem {
+  id               String  @id @default(uuid())
+  returnId         String
+  salesOrderItemId String
+  productId        String
+  variantId        String?
+  quantity         Int
+  condition        String  @default("SELLABLE")
+  warehouseId      String
+  refundAmount     Int     @default(0)
+  costReversal     Int     @default(0)
+
+  customerReturn CustomerReturn  @relation(fields: [returnId], references: [id], onDelete: Cascade)
+  salesOrderItem SalesOrderItem  @relation(fields: [salesOrderItemId], references: [id])
+  product        Product         @relation(fields: [productId], references: [id])
+  variant        ProductVariant? @relation(fields: [variantId], references: [id])
+  warehouse      Warehouse       @relation(fields: [warehouseId], references: [id])
+
+  @@index([returnId])
+}
+
+model CustomerLedgerEntry {
+  id              String   @id @default(uuid())
+  companyId       String
+  customerId      String
+  transactionDate DateTime @default(now())
+  transactionType String
+  referenceType   String
+  referenceId     String
+  referenceNumber String
+  debitAmount     Int      @default(0)
+  creditAmount    Int      @default(0)
+  runningBalance  Int      @default(0)
+  createdAt       DateTime @default(now())
+
+  company  Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId, transactionDate])
+}
+
+// ---------- Finance ----------
+
+model FinancialAccount {
+  id             String   @id @default(uuid())
+  companyId      String
+  name           String
+  accountType    String
+  openingBalance Int      @default(0)
+  currentBalance Int      @default(0)
+  bankName       String?
+  isDefault      Boolean  @default(false)
+  status         String   @default("ACTIVE")
+  createdAt      DateTime @default(now())
+
+  company  Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  payments Payment[] @relation("PaymentAccount")
+  incoming Payment[] @relation("PaymentDestination")
+  expenses Expense[]
+
+  @@index([companyId, status])
+}
+
+model Payment {
+  id                   String   @id @default(uuid())
+  companyId            String
+  paymentNumber        String
+  paymentType          String
+  customerId           String?
+  supplierId           String?
+  salesOrderId         String?
+  purchaseOrderId      String?
+  expenseId            String?
+  accountId            String
+  destinationAccountId String?
+  amount               Int
+  paymentDate          DateTime @default(now())
+  referenceNumber      String?
+  notes                String?
+  status               String   @default("CONFIRMED")
+  createdById          String?
+  createdAt            DateTime @default(now())
+
+  company       Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer      Customer?         @relation(fields: [customerId], references: [id])
+  supplier      Supplier?         @relation(fields: [supplierId], references: [id])
+  salesOrder    SalesOrder?       @relation(fields: [salesOrderId], references: [id])
+  purchaseOrder PurchaseOrder?    @relation(fields: [purchaseOrderId], references: [id])
+  account       FinancialAccount  @relation("PaymentAccount", fields: [accountId], references: [id])
+  destination   FinancialAccount? @relation("PaymentDestination", fields: [destinationAccountId], references: [id])
+
+  @@unique([companyId, paymentNumber])
+  @@index([companyId, paymentDate])
+}
+
+model ExpenseCategory {
+  id        String            @id @default(uuid())
+  companyId String
+  parentId  String?
+  nameAr    String
+  nameEn    String
+  isActive  Boolean           @default(true)
+  company   Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  parent    ExpenseCategory?  @relation("ExpenseCategoryTree", fields: [parentId], references: [id])
+  children  ExpenseCategory[] @relation("ExpenseCategoryTree")
+  expenses  Expense[]
+
+  @@index([companyId])
+}
+
+model Expense {
+  id            String   @id @default(uuid())
+  companyId     String
+  expenseNumber String
+  categoryId    String
+  accountId     String
+  supplierId    String?
+  warehouseId   String?
+  expenseDate   DateTime @default(now())
+  description   String
+  amount        Int
+  taxAmount     Int      @default(0)
+  totalAmount   Int
+  receiptUrl    String?
+  notes         String?
+  status        String   @default("CONFIRMED")
+  createdById   String?
+  createdAt     DateTime @default(now())
+
+  company  Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  category ExpenseCategory  @relation(fields: [categoryId], references: [id])
+  account  FinancialAccount @relation(fields: [accountId], references: [id])
+  supplier Supplier?        @relation(fields: [supplierId], references: [id])
+
+  @@unique([companyId, expenseNumber])
+  @@index([companyId, expenseDate])
+}
+
+// ---------- Stock Counting ----------
+
+model StockCountSession {
+  id              String    @id @default(uuid())
+  companyId       String
+  warehouseId     String
+  countNumber     String
+  // OPEN | REVIEW | POSTED | CANCELLED
+  status          String    @default("OPEN")
+  // WAREHOUSE | CATEGORY | BRAND | MANUAL
+  scopeType       String
+  scopeCategoryId String?
+  scopeBrandId    String?
+  notes           String?
+  createdByUserId String?
+  postedByUserId  String?
+  postedAt        DateTime?
+  cancelledReason String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  company   Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  warehouse Warehouse        @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  lines     StockCountLine[]
+
+  @@unique([companyId, countNumber])
+  @@index([companyId, status])
+}
+
+model StockCountLine {
+  id               String    @id @default(uuid())
+  companyId        String
+  sessionId        String
+  productId        String
+  variantId        String?
+  // Non-null mirror of variantId ("" for simple products). SQLite treats
+  // NULLs as distinct in a unique index, so the "one line per
+  // product/variant per session" invariant rides on this, exactly as
+  // InventoryBalance.variantKey does.
+  variantKey       String    @default("")
+  // System availableQty at the moment this line was created. Variance is
+  // measured against THIS, never against the live balance at posting time.
+  snapshotQty      Int       @default(0)
+  // null means nobody counted this line. It does NOT mean zero.
+  countedQty       Int?
+  countedAt        DateTime?
+  countedByUserId  String?
+  recountRequested Boolean   @default(false)
+  // What was actually applied, and what the balance was when it applied.
+  // Audit trail for explaining a drifted line months later.
+  postedDelta      Int?
+  liveQtyAtPost    Int?
+
+  session StockCountSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  product Product           @relation(fields: [productId], references: [id])
+
+  @@unique([sessionId, productId, variantKey])
+  @@index([companyId, sessionId])
+}
+
+/// A disagreement held open. Derived from StockClaimEvent — never edited directly.
+model StockClaim {
+  id          String    @id @default(uuid())
+  companyId   String
+  productId   String
+  variantId   String?
+  // Non-null mirror of variantId. SQLite treats NULLs as distinct in a unique
+  // index and Prisma's compound-unique input cannot carry null at all.
+  variantKey  String    @default("")
+  // RETURN | DAMAGE | SHORTAGE
+  kind        String
+  // MERCHANT | SALLA | WAREHOUSE — who said this happened. Never lose it.
+  assertedBy  String
+  // Non-null mirror of the external reference, for the same reason as
+  // variantKey: a nullable column inside @@unique constrains nothing on
+  // SQLite, so every manual claim would bypass the idempotency key entirely.
+  sourceKey   String    @default("")
+  /// Which warehouse's balance this claim disputes. Nullable for rows that
+  /// predate the column; the reconcile loader treats null as "the one real
+  /// warehouse". Closes review finding 3: a claim opened at warehouse B used
+  /// to be counted and settled against warehouse A's balance.
+  warehouseId String?
+  quantity    Int
+  settledQty  Int       @default(0)
+  openedAt    DateTime  @default(now())
+  settledAt   DateTime?
+  notes       String?
+
+  company Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  product Product           @relation(fields: [productId], references: [id])
+  events  StockClaimEvent[]
+
+  @@unique([companyId, kind, sourceKey, productId, variantKey])
+  @@index([companyId, openedAt])
+}
+
+/// Append-only. The source of truth; StockClaim is its rollup.
+model StockClaimEvent {
+  id         String   @id @default(uuid())
+  companyId  String
+  claimId    String
+  // OPENED | SETTLED | CANCELLED
+  eventType  String
+  quantity   Int
+  assertedBy String
+  occurredAt DateTime @default(now())
+  notes      String?
+
+  claim StockClaim @relation(fields: [claimId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, claimId, occurredAt])
+}
+
+/// The warehouse names your products its own way. Without this every
+/// reconciliation starts with fuzzy matching.
+model SkuAlias {
+  id        String  @id @default(uuid())
+  companyId String
+  productId String
+  variantId String?
+  /// Exactly as the warehouse writes it.
+  alias     String
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, alias])
+  @@index([companyId, productId])
+}
+
+/// A period cost. Never enters avgCost. Allocation is computed on read, never
+/// stored — a late-arriving invoice must not rewrite history.
+model AdSpend {
+  id          String   @id @default(uuid())
+  companyId   String
+  // META | GOOGLE | TIKTOK | SNAPCHAT | OTHER
+  channel     String
+  periodStart DateTime
+  periodEnd   DateTime
+  /// Minor units.
+  amount      Int
+  /// Optional. Unattributed spend is pooled and allocated by revenue on read.
+  productId   String?
+  campaign    String?
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  company Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id])
+
+  @@index([companyId, periodStart])
+}
+
+/// The link to the merchant's Salla store. One per company.
+///
+/// `clientSecret`, `accessToken` and `refreshToken` hold AES-256-GCM ciphertext
+/// from src/lib/crypto.ts. None of the three may ever be rendered to a page,
+/// returned from a server action, or written to a log.
+model SallaConnection {
+  id        String @id @default(uuid())
+  /// Unique, not compound: one store per company. A second authorisation
+  /// updates this row rather than creating a rival to it.
+  companyId String @unique
+
+  /// Not itself a secret, but it identifies the app and lives with the secret.
+  clientId     String
+  /// Ciphertext.
+  clientSecret String
+
+  /// Ciphertext. Null until the first successful authorisation.
+  accessToken     String?
+  /// Ciphertext. Salla rotates this on EVERY refresh and invalidates the old
+  /// one, so it must be persisted in the same write as the access token.
+  /// Losing it costs the owner a manual re-authorisation.
+  refreshToken    String?
+  accessExpiresAt DateTime?
+
+  /// Filled from the authorisation response.
+  storeId   String?
+  storeName String?
+  /// Space-separated, exactly as Salla granted them. Diagnostic: a missing
+  /// scope explains an empty sync far faster than a stack trace does.
+  scopes    String?
+
+  connectedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+}
+
+/// One posting of a reconciliation against a warehouse.
+///
+/// Exists so `isPhysicalCount` is a queryable column. It was previously
+/// recovered by JSON.parse-ing the audit log's payload — durable enough, and
+/// it failed toward the cautious answer, but a renamed key or a pruned audit
+/// row silently downgraded every affected product to "indicative" with no way
+/// to tell that from a real system-figure reconciliation.
+///
+/// Shrinkage movements from this posting carry `referenceId = this id` under
+/// `referenceType = "RECONCILIATION"`, which is what the profit report joins on.
+model ReconciliationSession {
+  id              String   @id @default(uuid())
+  companyId       String
+  warehouseId     String
+  /// The date the figures describe, which is NOT postedAt: a June shelf
+  /// reconciled in July must land its loss in June.
+  asOf            DateTime
+  /// False means the warehouse read the figures off its own system, so any
+  /// resulting loss is their bookkeeping rather than a verified count.
+  isPhysicalCount Boolean
+  postedAt        DateTime @default(now())
+
+  company   Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  warehouse Warehouse @relation(fields: [warehouseId], references: [id])
+
+  @@index([companyId, asOf])
+}
+
+/// The link to the merchant's Fast Hub (Omniful) account. One per company.
+///
+/// Every credential column holds AES-256-GCM ciphertext from src/lib/crypto.ts
+/// and must never be rendered, logged, or returned from a server action.
+model FastHubConnection {
+  id        String @id @default(uuid())
+  companyId String @unique
+
+  clientId      String
+  clientSecret  String
+  /// Verifies inbound webhooks if they are ever used. Polling does not need it.
+  webhookSecret String?
+
+  accessToken      String?
+  refreshToken     String?
+  accessExpiresAt  DateTime?
+  refreshExpiresAt DateTime?
+
+  sellerId   String?
+  sellerName String?
+
+  /// Watermarks for the catch-up poll, one per resource. Cursor pagination means
+  /// the app resumes from a position rather than re-reading a time window, and a
+  /// resource that fails must not stall the others.
+  ordersCursor    String?
+  returnsCursor   String?
+  inventoryCursor String?
+  lastPolledAt    DateTime?
+
+  connectedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+}
+
+/// One line of a bundle's recipe: selling `bundleProduct` removes `quantity` of
+/// `componentProduct` from the shelf.
+///
+/// ONLY fixed lines live here. Four of the five bundles let the customer choose
+/// their components, so a stored recipe alone would deplete the wrong colour on
+/// every sale — those come from the order's own line items.
+model BundleComponent {
+  id                 String @id @default(uuid())
+  companyId          String
+  bundleProductId    String
+  componentProductId String
+  /// Thousandths, like every other quantity in this codebase.
+  quantity           Int
+
+  company          Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  bundleProduct    Product @relation("BundleParent", fields: [bundleProductId], references: [id], onDelete: Cascade)
+  /// Cascade, matching SkuAlias. Without it the default RESTRICT blocks the
+  /// Company -> Product cascade, because a component row still points at the
+  /// product being deleted — which broke every database-backed test at once.
+  componentProduct Product @relation("BundleChild", fields: [componentProductId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, bundleProductId, componentProductId])
+  @@index([companyId, bundleProductId])
+}
+
+/// One run of the catch-up poll, kept so the sync can be SEEN.
+///
+/// The hourly timer writes its report to the systemd journal, which nobody
+/// opens. So an order that failed to import, a SKU the catalogue does not
+/// know, or a warehouse figure that disagrees with the books all happened in
+/// silence — and silence is indistinguishable from "nothing to report", which
+/// is exactly how this project shipped an inert feature once before.
+///
+/// The row is never deleted. `acknowledgedAt` is the owner saying "I have seen
+/// this", not the record going away.
+model SyncRun {
+  id        String @id @default(uuid())
+  companyId String
+
+  /// "FASTHUB" today. A Salla poller will write its own rows here.
+  source  String @default("FASTHUB")
+  /// "SCHEDULED" (the hourly timer) or "MANUAL" (the button on the settings
+  /// screen). Worth separating: a manual run that fails is being watched, an
+  /// unattended one that fails is not.
+  trigger String @default("SCHEDULED")
+
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+
+  /// OK | ATTENTION | FAILED. Precomputed rather than derived from the JSON
+  /// below, so the badge is an indexed lookup instead of a scan-and-parse.
+  outcome String @default("OK")
+
+  ordersCreated Int @default(0)
+  claimsOpened  Int @default(0)
+  /// Products where Fast Hub's count and the books disagree.
+  diffCount     Int @default(0)
+
+  /// What a human has to act on, as JSON: unknown SKUs, orders skipped for
+  /// predating the opening balance, orders that threw, returns whose QC
+  /// carried no sellable/damaged split, and any resource that failed outright.
+  /// Display-only, so JSON rather than five tables.
+  attention String?
+
+  acknowledgedAt DateTime?
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, startedAt])
+  @@index([companyId, outcome, acknowledgedAt])
+}
+
+// ---------- Documents ----------
+
+/// A file the owner uploaded, kept on disk with only its pointer here.
+///
+/// Blobs stay out of SQLite deliberately: the nightly backup copies the
+/// database, and putting scanned invoices inside it would grow that copy
+/// without bound. `deploy/backup-db.cjs` archives the uploads directory
+/// alongside instead.
+model Attachment {
+  id         String @id @default(uuid())
+  companyId  String
+  /// What it hangs off: "EXPENSE" | "WAREHOUSE_INVOICE".
+  entityType String
+  entityId   String
+
+  /// The name the owner's file had. Shown to them, never used as a path.
+  fileName   String
+  /// The name on disk — generated, never derived from `fileName`. A hostile
+  /// or merely duplicated upload cannot then escape the uploads directory or
+  /// overwrite somebody else's document.
+  storedName String @unique
+  mimeType   String
+  sizeBytes  Int
+
+  uploadedById String?
+  createdAt    DateTime @default(now())
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, entityType, entityId])
+}
+
+/// An invoice from the fulfilment warehouse — Fast Hub's monthly services bill.
+///
+/// NOT a purchase of goods. Its charges are per-order fulfilment fees and
+/// period storage, so none of it may ever reach `avgCost`; the fees attach to
+/// the orders that caused them and the storage becomes an expense.
+model WarehouseInvoice {
+  id        String @id @default(uuid())
+  companyId String
+  source    String @default("FASTHUB")
+
+  invoiceNumber String
+  invoiceDate   DateTime
+  /// Minor units, like every other money value here.
+  subtotal      Int
+  taxAmount     Int
+  total         Int
+
+  /// DRAFT until the owner confirms it. Nothing posts on upload: a wrong
+  /// figure posted automatically is worse than a right one typed by hand.
+  status   String    @default("DRAFT")
+  postedAt DateTime?
+  notes    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company Company                @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  lines   WarehouseInvoiceLine[]
+
+  /// Re-uploading the same file must not create a second invoice, nor charge
+  /// its fees to the same orders twice.
+  @@unique([companyId, source, invoiceNumber])
+  @@index([companyId, invoiceDate])
+}
+
+model WarehouseInvoiceLine {
+  id        String @id @default(uuid())
+  companyId String
+  invoiceId String
+
+  /// ORDER_FEE — belongs to one order, and lands on it.
+  /// STORAGE   — a period cost, and becomes an expense.
+  /// OTHER     — anything unrecognised, which posts nowhere until a human says.
+  kind String
+
+  /// The warehouse's own order number, kept even after matching: it is what
+  /// the invoice actually said, and the match is our interpretation of it.
+  externalOrderRef String?
+  salesOrderId     String?
+  /// Set once posted, so a re-post cannot double-charge.
+  expenseId        String?
+
+  description String
+  /// Thousandths, like every other quantity.
+  quantity    Int
+  /// Minor units, before tax.
+  amount      Int
+  taxAmount   Int    @default(0)
+
+  invoice    WarehouseInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  company    Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  salesOrder SalesOrder?      @relation(fields: [salesOrderId], references: [id])
+
+  @@index([invoiceId])
+  @@index([companyId, salesOrderId])
+}

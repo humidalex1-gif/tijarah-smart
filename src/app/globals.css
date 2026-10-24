@@ -1,0 +1,326 @@
+@import "tailwindcss";
+
+/*
+ * Swiss: neutral surfaces, hairline rules, one deliberate accent, numerals as
+ * composition elements. Chosen because this app is dense numeric tables a
+ * merchant reconciles money with — hairline structure and tabular figures are
+ * functional here, not decorative.
+ *
+ * The accent is Yves Klein Blue rather than Swiss Red. Red already carries
+ * meaning in a financial table (loss, negative variance, danger); spending it
+ * on the brand would collide with the one place colour must be unambiguous.
+ *
+ * Both themes declare the SAME token names, so every component reads
+ * `bg-panel` / `text-ink` / `border-line` and neither knows nor cares which
+ * theme is active.
+ */
+
+@theme {
+  /* One grotesque for Arabic and Latin, loaded in the locale layout and
+     self-hosted by next/font. The fallbacks matter only for the instant
+     before it swaps. */
+  --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+
+  /* Light — Swiss neutral ground, not warm paper. */
+  --color-surface: #f4f4f5;
+  --color-panel: #ffffff;
+  --color-ink: #0a0a0b;
+  --color-muted: #6b6b73;
+  --color-line: #dededf;
+  --color-hairline: #c9c9cc;
+  --color-subtle: #ebebed;
+
+  --color-brand: #002fa7;
+  --color-brand-ink: #ffffff;
+  --color-brand-soft: #e6eaf6;
+
+  /* Status stays desaturated so the accent remains the only true colour.
+     These are signals, never decoration. */
+  --color-success: #0f6b45;
+  --color-success-soft: #e3f1ea;
+  --color-warning: #8a5a00;
+  --color-warning-soft: #f7eeda;
+  --color-danger: #a01b1b;
+  --color-danger-soft: #f6e5e5;
+
+  /* Kept so existing markup using text-navy resolves to the theme foreground
+     instead of a hard-coded slate. */
+  --color-navy: #0a0a0b;
+}
+
+/*
+ * The parts of a form the browser paints itself — the calendar glyph inside
+ * `<input type="date">`, the popup a `<select>` opens, number spinners,
+ * scrollbars — take their colours from `color-scheme`, never from the tokens
+ * above. Without this they stay in the light scheme under the dark palette,
+ * which is where the near-black calendar glyph on a near-black panel came
+ * from. Declared once per palette: here, and in both dark blocks below.
+ */
+:root {
+  color-scheme: light;
+}
+
+/*
+ * Chart series. Held as plain custom properties rather than @theme colours
+ * because the chart passes them straight into `stroke` / `fill`, and they need
+ * to change with the theme without the server component knowing which theme is
+ * active.
+ *
+ * The light values are the ones previously validated with the dataviz skill's
+ * palette checker. The dark values are derived from this file's own semantic
+ * tokens so the chart agrees with the rest of the palette; their contrast was
+ * verified 2026-08-04 — 5.9:1 to 11.5:1 against both dark surfaces, well over
+ * the 3:1 non-text minimum, with the same hue trio as the validated light set.
+ */
+:root {
+  --chart-revenue: #2563eb;
+  --chart-gross-profit: #10b981;
+  --chart-net-profit: #f59e0b;
+}
+
+/*
+ * Dark. Not an inversion — a re-grounding. Surfaces LIFT rather than drop
+ * (page darkest, panels lighter) so the hairline grid still reads, and the
+ * accent brightens because #002FA7 is unreadable against near-black.
+ */
+:root[data-theme="dark"] {
+  /* Hands the dark scheme to the widgets the browser paints for us. */
+  color-scheme: dark;
+
+  --color-surface: #0a0a0b;
+  --color-panel: #141416;
+  --color-ink: #f2f2f3;
+  --color-muted: #9a9aa2;
+  --color-line: #26262a;
+  --color-hairline: #35353b;
+  --color-subtle: #1c1c1f;
+
+  --color-brand: #6b8afd;
+  --color-brand-ink: #0a0a0b;
+  --color-brand-soft: #1a1f33;
+
+  --color-success: #4ade9b;
+  --color-success-soft: #12241c;
+  --color-warning: #e0b155;
+  --color-warning-soft: #251d0e;
+  --color-danger: #f28b8b;
+  --color-danger-soft: #2a1616;
+
+  --color-navy: #f2f2f3;
+
+  --chart-revenue: #6b8afd;
+  --chart-gross-profit: #4ade9b;
+  --chart-net-profit: #e0b155;
+}
+
+/* Follow the operating system when the merchant has expressed no preference of
+   their own. The toggle writes data-theme, which wins on specificity. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    /* Hands the dark scheme to the widgets the browser paints for us. */
+    color-scheme: dark;
+
+    --color-surface: #0a0a0b;
+    --color-panel: #141416;
+    --color-ink: #f2f2f3;
+    --color-muted: #9a9aa2;
+    --color-line: #26262a;
+    --color-hairline: #35353b;
+    --color-subtle: #1c1c1f;
+
+    --color-brand: #6b8afd;
+    --color-brand-ink: #0a0a0b;
+    --color-brand-soft: #1a1f33;
+
+    --color-success: #4ade9b;
+    --color-success-soft: #12241c;
+    --color-warning: #e0b155;
+    --color-warning-soft: #251d0e;
+    --color-danger: #f28b8b;
+    --color-danger-soft: #2a1616;
+
+    --color-navy: #f2f2f3;
+
+    --chart-revenue: #6b8afd;
+    --chart-gross-profit: #4ade9b;
+    --chart-net-profit: #e0b155;
+  }
+}
+
+/*
+ * Paper is light whatever the screen was. An invoice printed while the app is
+ * in dark mode would otherwise come out as near-white ink on white paper, so
+ * the surface and ink tokens are forced back to their light values here —
+ * nothing else, because the components already read these names.
+ *
+ * The selector must name `:root[data-theme="dark"]` as well: the attribute
+ * selector is more specific than a bare `:root`, and a media query adds no
+ * specificity of its own, so a `:root`-only rule would lose to the toggle.
+ */
+@media print {
+  :root,
+  :root[data-theme="dark"] {
+    color-scheme: light;
+
+    --color-surface: #f4f4f5;
+    --color-panel: #ffffff;
+    --color-ink: #0a0a0b;
+    --color-muted: #6b6b73;
+    --color-line: #dededf;
+    --color-hairline: #c9c9cc;
+    --color-subtle: #ebebed;
+  }
+}
+
+body {
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
+
+/*
+ * Which theme icon shows. Driven by the same `data-theme` attribute and the
+ * same media query as the colour tokens above, so the button can never
+ * disagree with the palette it is sitting on. Each icon shows what pressing it
+ * will GIVE you: a moon on a light page, a sun on a dark one.
+ */
+.theme-icon-sun {
+  display: none;
+}
+
+:root[data-theme="dark"] .theme-icon-sun {
+  display: block;
+}
+
+:root[data-theme="dark"] .theme-icon-moon {
+  display: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .theme-icon-sun {
+    display: block;
+  }
+
+  :root:not([data-theme="light"]) .theme-icon-moon {
+    display: none;
+  }
+}
+
+/*
+ * Swiss sets numerals as composition elements. Every figure in this app is
+ * money or a quantity read down a column, so tabular lining figures are the
+ * default rather than an opt-in class — columns align without each table
+ * having to remember.
+ */
+table,
+input[type="number"] {
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* The swap should read as a light change, not a page reload — but never at the
+   cost of someone who asked the OS to stop animating things. */
+@media (prefers-reduced-motion: no-preference) {
+  body {
+    transition: background-color 160ms ease, color 160ms ease;
+  }
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * Landing motion
+ * ---------------------------------------------------------------------------
+ * Used only by the public front page (`(marketing)/Motion.tsx`). Every class
+ * here is applied by the CLIENT after mount, never by the server, so the page
+ * is complete and readable with JavaScript off — the animation is an addition
+ * to a finished page, not the thing that finishes it.
+ *
+ * The whole block sits inside `prefers-reduced-motion: no-preference`. Under
+ * `reduce` these classes resolve to nothing at all: no transition to sit at
+ * zero duration, no transform to be stuck at its start value. The component
+ * also refuses to arm anything in that case, so this is the second of two
+ * independent guards rather than the only one.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .reveal {
+    opacity: 0;
+    transform: translateY(1.5rem);
+    transition:
+      opacity 620ms cubic-bezier(0.16, 0.84, 0.24, 1),
+      transform 620ms cubic-bezier(0.16, 0.84, 0.24, 1);
+  }
+
+  .reveal.is-in {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* Rules draw along the reading direction: `right` under RTL, or every
+     hairline on the Arabic page would be ruled backwards. */
+  .draw {
+    transform: scaleX(0);
+    transform-origin: left center;
+    transition: transform 760ms cubic-bezier(0.16, 0.84, 0.24, 1);
+  }
+
+  [dir="rtl"] .draw {
+    transform-origin: right center;
+  }
+
+  .draw.is-in {
+    transform: scaleX(1);
+  }
+
+  /*
+   * The hero does not wait to be scrolled to — it is already in view, so it
+   * plays once on load. Pure CSS, no observer, nothing to hydrate: the one
+   * piece of this page's motion that a visitor sees before any JavaScript has
+   * run.
+   */
+  .lift {
+    animation: lift 760ms cubic-bezier(0.16, 0.84, 0.24, 1) both;
+  }
+
+  .hero-rule {
+    animation: rule-in 900ms cubic-bezier(0.16, 0.84, 0.24, 1) both;
+    transform-origin: left center;
+  }
+
+  [dir="rtl"] .hero-rule {
+    transform-origin: right center;
+  }
+
+  @keyframes lift {
+    from {
+      opacity: 0;
+      transform: translateY(1.75rem);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes rule-in {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
+    }
+  }
+
+  /* The hero's grid columns, ruled downward. Vertical, so scaleY — the
+     horizontal rules' origin flip does not apply and must not be inherited. */
+  .hero-col {
+    animation: col-in 1100ms cubic-bezier(0.16, 0.84, 0.24, 1) both;
+    transform-origin: top center;
+  }
+
+  @keyframes col-in {
+    from {
+      transform: scaleY(0);
+    }
+    to {
+      transform: scaleY(1);
+    }
+  }
+}

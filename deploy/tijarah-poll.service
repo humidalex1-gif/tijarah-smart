@@ -1,0 +1,23 @@
+[Unit]
+Description=Tijarah Smart hourly Fast Hub catch-up poll
+After=tijarah.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=tijarah
+WorkingDirectory=/opt/tijarah
+EnvironmentFile=/opt/tijarah/.env
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/node --import tsx /opt/tijarah/scripts/poll-fasthub.ts
+
+# Fast Hub throttles at 60 requests a minute and the client already backs off,
+# but a poll that hangs must not still be running when the next hour fires.
+TimeoutStartSec=600
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+# It writes orders, movements and the stored cursors.
+ReadWritePaths=/opt/tijarah/data

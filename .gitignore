@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+
+# Next.js build output
+.next/
+out/
+
+# Environment (never commit real secrets)
+.env
+.env.*
+!.env.example
+
+# Databases (SQLite dev/test data stays local)
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+
+# Uploaded documents live on disk beside the database, never in the repo.
+data/
+
+# TypeScript / tooling
+*.tsbuildinfo
+next-env.d.ts
+/coverage
+
+# Internal planning / agent artifacts (kept locally, not published)
+.claude/
+.superpowers/
+docs/superpowers/
+docs/DEPLOYMENT.md
+docs/HANDOFF.md
+docs/HANDOFF-NEXT.md
+
+# OS / editor
+.DS_Store
+Thumbs.db

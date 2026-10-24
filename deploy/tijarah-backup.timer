@@ -1,0 +1,14 @@
+[Unit]
+Description=Run the Tijarah Smart database backup nightly
+
+[Timer]
+OnCalendar=*-*-* 03:20:00
+# A server that was off at 03:20 backs up as soon as it is on again, rather
+# than silently skipping the night.
+Persistent=true
+# Nothing else runs at this hour, but a fixed minute across many machines is
+# how backup storms happen; the jitter costs nothing.
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target

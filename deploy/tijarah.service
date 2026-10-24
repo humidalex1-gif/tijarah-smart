@@ -1,0 +1,39 @@
+[Unit]
+Description=Tijarah Smart (SokuDry stock and profit)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=tijarah
+WorkingDirectory=/opt/tijarah
+
+# DATABASE_URL, AUTH_SECRET and APP_URL live here. Root-owned, mode 600:
+# AUTH_SECRET both signs the sessions and derives the key that encrypts the
+# Fast Hub and Salla credentials, so this one file is the whole trust anchor.
+EnvironmentFile=/opt/tijarah/.env
+
+# 127.0.0.1 ONLY. Caddy terminates TLS and proxies in; binding 0.0.0.0 would
+# publish the app on :3000 in plain HTTP alongside the HTTPS one, and every
+# login would be readable on the wire.
+Environment=NODE_ENV=production
+# -H on the command line, not just HOSTNAME in the environment: `next start`
+# reads the FLAG, and with only the variable set it bound 0.0.0.0 — verified
+# on the server, where ss showed `*:3000`. ufw was blocking it, but a firewall
+# is the second line of defence, not the first.
+ExecStart=/usr/bin/node node_modules/next/dist/bin/next start -H 127.0.0.1 -p 3000
+
+Restart=on-failure
+RestartSec=5
+
+# The app writes exactly one thing: the SQLite file under /opt/tijarah/data.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/tijarah/data
+# Next writes its build output here at deploy time and caches at runtime.
+ReadWritePaths=/opt/tijarah/.next
+
+[Install]
+WantedBy=multi-user.target

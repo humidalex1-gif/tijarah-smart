@@ -1,0 +1,288 @@
+/*
+ * Landing-only brand system, scoped under `.tj-landing` so nothing here can
+ * leak into the app. The app keeps its Swiss tokens; the front door carries
+ * the Tijarah Smart identity the owner supplied on 2026-08-05: deep navy ink
+ * and a blue → teal → green gradient, from the logo itself.
+ */
+.tj-landing {
+  --tj-navy: #182b4d;
+  --tj-blue: #2e9bd4;
+  --tj-teal: #00a99d;
+  --tj-green: #2fbf63;
+
+  --tj-bg: #f6f9fc;
+  --tj-panel: #ffffff;
+  --tj-ink: #16233f;
+  --tj-muted: #55637f;
+  --tj-line: #e2e8f2;
+  --tj-chip: #eef4fa;
+
+  --tj-grad: linear-gradient(120deg, var(--tj-blue), var(--tj-teal) 55%, var(--tj-green));
+
+  /*
+   * A SECOND gradient, for text only.
+   *
+   * The brand gradient above is tuned to be a GROUND with white on it —
+   * buttons, icon tiles, the split bar — and passes contrast easily that way.
+   * Turned around and used as coloured text on this page's near-white ground,
+   * its own stops measure 2.27–2.94:1, under the 3:1 floor for large text.
+   * The loss figure and the step numerals shipped at those values.
+   *
+   * Same three hues, walked darker until each clears 4.5:1. The dark theme
+   * keeps the original stops, which are already 5.9–7.7:1 there.
+   */
+  --tj-grad-text: linear-gradient(120deg, #1a6b96, #00736b 55%, #1a7d40);
+  --tj-grad-text-fallback: #00736b;
+  --tj-shadow: 0 10px 30px -12px rgba(24, 43, 77, 0.18);
+  --tj-shadow-lift: 0 18px 44px -14px rgba(24, 43, 77, 0.28);
+
+  background: var(--tj-bg);
+  color: var(--tj-ink);
+}
+
+:root[data-theme="dark"] .tj-landing {
+  --tj-grad-text: linear-gradient(120deg, #2e9bd4, #00a99d 55%, #2fbf63);
+  --tj-grad-text-fallback: #00a99d;
+  --tj-bg: #0b1424;
+  --tj-panel: #121f36;
+  --tj-ink: #ecf2fa;
+  --tj-muted: #93a3bd;
+  --tj-line: #223250;
+  --tj-chip: #182642;
+  --tj-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.5);
+  --tj-shadow-lift: 0 18px 44px -14px rgba(0, 0, 0, 0.6);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .tj-landing {
+    --tj-grad-text: linear-gradient(120deg, #2e9bd4, #00a99d 55%, #2fbf63);
+    --tj-grad-text-fallback: #00a99d;
+    --tj-bg: #0b1424;
+    --tj-panel: #121f36;
+    --tj-ink: #ecf2fa;
+    --tj-muted: #93a3bd;
+    --tj-line: #223250;
+    --tj-chip: #182642;
+    --tj-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.5);
+    --tj-shadow-lift: 0 18px 44px -14px rgba(0, 0, 0, 0.6);
+  }
+}
+
+/* ------------------------------------------------------------------ pieces */
+
+.tj-panel {
+  background: var(--tj-panel);
+  border: 1px solid var(--tj-line);
+}
+
+.tj-line { border-color: var(--tj-line); }
+.tj-ink { color: var(--tj-ink); }
+.tj-muted { color: var(--tj-muted); }
+.tj-chip-bg { background: var(--tj-chip); }
+
+/* Gradient-filled text. Falls back to solid teal where clipping is missing. */
+.tj-text-grad {
+  color: var(--tj-grad-text-fallback);
+  background: var(--tj-grad-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.tj-btn-grad {
+  background: var(--tj-grad);
+  color: #ffffff;
+  box-shadow: var(--tj-shadow);
+  transition: transform 180ms ease, box-shadow 180ms ease, opacity 180ms ease;
+}
+
+.tj-btn-grad:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--tj-shadow-lift);
+}
+
+.tj-btn-ghost {
+  border: 1px solid var(--tj-line);
+  background: var(--tj-panel);
+  color: var(--tj-ink);
+  transition: border-color 180ms ease, transform 180ms ease;
+}
+
+.tj-btn-ghost:hover {
+  border-color: var(--tj-teal);
+  transform: translateY(-1px);
+}
+
+.tj-card {
+  background: var(--tj-panel);
+  border: 1px solid var(--tj-line);
+  box-shadow: var(--tj-shadow);
+  transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
+}
+
+.tj-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--tj-shadow-lift);
+  border-color: color-mix(in srgb, var(--tj-teal) 45%, var(--tj-line));
+}
+
+/* Icon tile: gradient ground, white glyph. */
+.tj-icon {
+  background: var(--tj-grad);
+  color: #ffffff;
+  box-shadow: var(--tj-shadow);
+}
+
+/* The gradient hairline under section titles; also restyles the landing's
+   DrawRule so the shared motion component wears this page's brand. */
+.tj-landing .tj-rule,
+.tj-landing .draw {
+  height: 3px;
+  border-radius: 9999px;
+  background: var(--tj-grad);
+}
+
+/* Integration logos arrive as dark-on-transparent PNGs from their owners'
+   sites, so they sit on a white chip in BOTH themes rather than vanishing
+   into the navy ground. */
+.tj-logo-chip {
+  background: #ffffff;
+  border: 1px solid var(--tj-line);
+  box-shadow: var(--tj-shadow);
+}
+
+/* ------------------------------------------------------------------ motion */
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Soft gradient auras drifting behind the hero. Decor is allowed to move
+     slowly; content only moves on arrival (globals.css). */
+  .tj-blob {
+    animation: tj-drift 11s ease-in-out infinite alternate;
+  }
+
+  .tj-blob-b {
+    animation-duration: 14s;
+    animation-delay: -6s;
+  }
+
+  @keyframes tj-drift {
+    from {
+      transform: translate3d(-4%, -6%, 0) scale(1);
+    }
+    to {
+      transform: translate3d(5%, 7%, 0) scale(1.12);
+    }
+  }
+
+  /* The hero card breathes once the counters settle — alive, not busy. */
+  .tj-float {
+    animation: tj-float 7s ease-in-out infinite alternate;
+  }
+
+  @keyframes tj-float {
+    from {
+      transform: translateY(0);
+    }
+    to {
+      transform: translateY(-10px);
+    }
+  }
+}
+
+/* ------------------------------------------------- the rebuilt front door */
+
+/*
+ * Everything below is DECOR or arrival motion. Two rules hold, both learned
+ * from the components in Motion.tsx: the finished state is what renders
+ * without JavaScript, and `prefers-reduced-motion` removes the motion rather
+ * than shortening it.
+ */
+
+/* Reading progress, written as a custom property by ScrollProgress so a
+   scroll never re-renders the React tree under it. */
+.tj-progress {
+  position: fixed;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  z-index: 40;
+  height: 2px;
+  width: 100%;
+  transform-origin: left center;
+  transform: scaleX(var(--tj-progress, 0));
+  background: var(--tj-grad);
+  pointer-events: none;
+}
+
+[dir="rtl"] .tj-progress { transform-origin: right center; }
+
+/* The splitting bar: whole on arrival, then parted along the boundary. */
+.tj-split {
+  display: flex;
+  width: 100%;
+  height: 0.75rem;
+  border-radius: 9999px;
+  overflow: hidden;
+  background: var(--tj-chip);
+  gap: 0;
+}
+
+.tj-split-part {
+  display: block;
+  height: 100%;
+  transform: scaleX(0);
+  transform-origin: inherit;
+}
+
+.tj-split.is-split .tj-split-part { transform: scaleX(1); }
+
+/* Claims are owed, not lost — they read as the brand, not as damage. */
+.tj-split-claim { background: var(--tj-grad); }
+
+/* The only loss on the page. Deliberately the one place a warm tone appears. */
+.tj-split-loss { background: linear-gradient(120deg, #e0863a, #d2603c); }
+
+/* Cards lean toward a fine pointer; Tilt sets the transform inline. */
+.tj-tilt { transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1); will-change: transform; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .tj-split-part {
+    transition: transform 900ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  /* A gradient that travels once across the hero title, then rests. */
+  .tj-sweep {
+    background-size: 220% 100%;
+    animation: tj-sweep 2.6s cubic-bezier(0.4, 0, 0.2, 1) 1 both;
+  }
+
+  @keyframes tj-sweep {
+    from { background-position: 120% 0; }
+    to { background-position: 0 0; }
+  }
+
+  /* The connecting spine of the how-it-works steps, drawing downward. */
+  .tj-spine { transform: scaleY(0); transform-origin: top center; transition: transform 1100ms cubic-bezier(0.22, 1, 0.36, 1); }
+  .tj-spine.is-in { transform: scaleY(1); }
+
+  /* A slow shimmer on the closing panel, so the last thing seen is alive. */
+  .tj-shimmer::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(115deg, transparent 35%, rgba(255, 255, 255, 0.14) 50%, transparent 65%);
+    background-size: 250% 100%;
+    animation: tj-shimmer 6.5s linear infinite;
+    pointer-events: none;
+  }
+
+  @keyframes tj-shimmer {
+    from { background-position: 140% 0; }
+    to { background-position: -40% 0; }
+  }
+}
+
+/* Reduced motion: the bar is simply already split, with no travel. */
+@media (prefers-reduced-motion: reduce) {
+  .tj-split-part { transform: scaleX(1); }
+  .tj-spine { transform: scaleY(1); }
+}

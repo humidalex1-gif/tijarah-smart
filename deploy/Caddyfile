@@ -1,0 +1,42 @@
+# tijarahsmart.com on the production VPS (host details redacted).
+#
+# Caddy is viable here and was not on the first server: this box is empty —
+# nothing owns 80/443, so nothing is taken from anyone by binding them.
+#
+# Caddy rather than nginx + certbot on purpose: these lines obtain and RENEW
+# the Let's Encrypt certificate on their own. There is no cron job to forget,
+# and a certificate that silently expires is the classic way a small
+# self-hosted app goes dark three months after it was set up.
+#
+# Both names are listed so Caddy gets a certificate for each. www redirects to
+# the bare domain rather than serving a duplicate: two live origins would mean
+# two session cookie scopes, and a Salla redirect registered against one of
+# them failing on the other.
+www.tijarahsmart.com {
+	redir https://tijarahsmart.com{uri} permanent
+}
+
+tijarahsmart.com {
+	encode zstd gzip
+
+	# The app is bound to the loopback (see tijarah.service). Nothing but
+	# Caddy can reach it, so :3000 is never exposed even if the firewall
+	# were misconfigured.
+	reverse_proxy 127.0.0.1:3000
+
+	# HSTS. Once the domain is served over HTTPS it must never be reachable
+	# over plain HTTP again — a login form on http:// is a password given
+	# away to anyone on the same network.
+	header Strict-Transport-Security "max-age=31536000; includeSubDomains"
+
+	# This app holds costs, margins and supplier terms. It has no reason to
+	# be embedded anywhere or to leak its URLs to third parties.
+	header X-Frame-Options "DENY"
+	header X-Content-Type-Options "nosniff"
+	header Referrer-Policy "same-origin"
+
+	# No `output file`: the packaged unit runs Caddy under ProtectSystem, so it
+	# cannot write /var/log and refuses to start at all — a valid config that
+	# still fails, which is the confusing kind. Logs go to journald by default:
+	#   journalctl -u caddy -f
+}

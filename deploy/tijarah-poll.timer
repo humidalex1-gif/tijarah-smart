@@ -1,0 +1,13 @@
+[Unit]
+Description=Run the Fast Hub catch-up poll every hour
+
+[Timer]
+OnCalendar=hourly
+# A server that was off catches up on boot instead of leaving a silent gap in
+# the order stream.
+Persistent=true
+# Never exactly on the hour: Omniful's own systems are busiest there.
+RandomizedDelaySec=180
+
+[Install]
+WantedBy=timers.target
